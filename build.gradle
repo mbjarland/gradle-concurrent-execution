@@ -1,0 +1,44 @@
+import groovyx.gpars.GParsPool
+
+ext.startTime = System.currentTimeMillis()
+
+buildscript { 
+  repositories { 
+    mavenCentral()
+  }
+
+  dependencies { 
+    classpath "org.codehaus.gpars:gpars:1.1.0"
+  }
+
+}
+
+def concurrentMethod(int index, String threadName) {
+  println "thread $threadName with index $index at ${System.currentTimeMillis() - startTime}" 
+}
+
+String getThreadName(names) {
+  String currentName = Thread.currentThread().name
+  if (!names.contains(currentName)) names << currentName
+
+  "t${names.indexOf(currentName).toString().padLeft(2, '0')}"
+}
+
+
+task run << {
+  def cores   = Runtime.runtime.availableProcessors() 
+  def threads = 10
+  println "    > Using $threads threads on $cores cores..."
+  def names = []
+  GParsPool.withPool(threads) {
+    (1..100).eachParallel { 
+      def name = getThreadName(names)
+      concurrentMethod(it, name) 
+    }
+  }
+}
+
+task wrapper(type: Wrapper) {
+  jarFile = 'wrapper/gradle-wrapper.jar'
+  gradleVersion = "1.8"
+}
